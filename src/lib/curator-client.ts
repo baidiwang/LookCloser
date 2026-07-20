@@ -1,38 +1,29 @@
-import type { ArtworkMetadata, ArtworkHotspot } from "@/types/artwork";
+import { createFallbackCuratorCopy } from "@/lib/curator-fallback";
+import type { ArtworkHotspot } from "@/types/artwork";
+import type {
+  CuratorCopy,
+  CuratorGenerationInput,
+} from "@/types/curator";
 
-export const FUTURE_CURATOR_MODEL = "gpt-5.6-sol" as const;
+export type { CuratorCopy, CuratorGenerationInput } from "@/types/curator";
 
-export type CuratorGenerationInput = {
-  artwork: Pick<ArtworkMetadata, "id" | "title" | "artist" | "date" | "location">;
-  hotspotId: string;
-  dwellTimeMs: number;
-  visitedHotspotIds: string[];
-};
-
-export type CuratorCopy = {
-  label: string;
-  curiosityLine: string;
-  storyTitle: string;
-  storyText: string;
-};
-
-/**
- * Deterministic local adapter for the hackathon demo.
- *
- * Future integration boundary: replace this body with a call to a server-side
- * `/api/curator` route using the Responses API. Keep API keys and model calls
- * on the server; the UI should continue to send only CuratorGenerationInput.
- */
 export async function generateCuratorCopy(
   input: CuratorGenerationInput,
   hotspot: ArtworkHotspot,
 ): Promise<CuratorCopy> {
-  void input;
+  try {
+    const response = await fetch("/api/curator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
 
-  return {
-    label: hotspot.label,
-    curiosityLine: hotspot.curiosityLine,
-    storyTitle: hotspot.storyTitle,
-    storyText: hotspot.storyText,
-  };
+    if (!response.ok) {
+      throw new Error(`Curator request failed with ${response.status}`);
+    }
+
+    return (await response.json()) as CuratorCopy;
+  } catch {
+    return createFallbackCuratorCopy(input, hotspot);
+  }
 }

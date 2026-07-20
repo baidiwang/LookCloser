@@ -24,8 +24,11 @@ export function CuratorPanel({
       </div>
       <StoryPanel hotspot={hotspot} copy={copy} />
       <footer className="curator-panel-footer">
-        <span aria-hidden="true" />
-        <p>Return to the painting and let another detail hold your attention.</p>
+        <p>Let another detail hold your attention.</p>
+        <button type="button" onClick={onClose}>
+          {copy.ctaLabel}
+          <span aria-hidden="true" />
+        </button>
       </footer>
     </aside>
   );

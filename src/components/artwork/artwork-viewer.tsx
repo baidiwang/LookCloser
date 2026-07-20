@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AttentionTracker } from "@/components/artwork/attention-tracker";
 import { CuriosityAnnotation } from "@/components/artwork/curiosity-annotation";
 import { CuratorPanel } from "@/components/artwork/curator-panel";
+import { createFallbackCuratorCopy } from "@/lib/curator-fallback";
 import {
   generateCuratorCopy,
   type CuratorCopy,
@@ -22,6 +23,7 @@ type RevealedNote = {
   hotspot: ArtworkHotspot;
   point: NormalizedPoint;
   copy: CuratorCopy;
+  isLoading: boolean;
 };
 
 function pointDistance(a: NormalizedPoint, b: NormalizedPoint) {
@@ -32,6 +34,15 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
   const [revealedNote, setRevealedNote] = useState<RevealedNote | null>(null);
   const [storyOpen, setStoryOpen] = useState(false);
   const [visitedHotspotIds, setVisitedHotspotIds] = useState<string[]>([]);
+  const activeRequestRef = useRef(0);
+  const revealedNoteRef = useRef<RevealedNote | null>(null);
+  const visitedHotspotIdsRef = useRef<string[]>([]);
+  const priorCuriosityNotesRef = useRef<string[]>([]);
+
+  const updateRevealedNote = useCallback((note: RevealedNote | null) => {
+    revealedNoteRef.current = note;
+    setRevealedNote(note);
+  }, []);
 
   const artworkRequestMetadata = useMemo(
     () => ({
@@ -50,30 +61,59 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
         artwork: artworkRequestMetadata,
         hotspotId: event.hotspot.id,
         dwellTimeMs: event.dwellTimeMs,
-        visitedHotspotIds,
+        visitedHotspotIds: visitedHotspotIdsRef.current,
+        priorCuriosityNotes: priorCuriosityNotesRef.current,
       };
-      const copy = await generateCuratorCopy(payload, event.hotspot);
 
-      setRevealedNote({ hotspot: event.hotspot, point: event.point, copy });
-      setVisitedHotspotIds((current) =>
-        current.includes(event.hotspot.id)
-          ? current
-          : [...current, event.hotspot.id],
-      );
+      const requestId = ++activeRequestRef.current;
+      const fallbackCopy = createFallbackCuratorCopy(payload, event.hotspot);
+
+      updateRevealedNote({
+        hotspot: event.hotspot,
+        point: event.point,
+        copy: fallbackCopy,
+        isLoading: true,
+      });
+
+      const nextVisitedHotspotIds = visitedHotspotIdsRef.current.includes(
+        event.hotspot.id,
+      )
+        ? visitedHotspotIdsRef.current
+        : [...visitedHotspotIdsRef.current, event.hotspot.id];
+      visitedHotspotIdsRef.current = nextVisitedHotspotIds;
+      setVisitedHotspotIds(nextVisitedHotspotIds);
+
+      const copy = await generateCuratorCopy(payload, event.hotspot);
+      if (requestId !== activeRequestRef.current) return;
+
+      updateRevealedNote({
+        hotspot: event.hotspot,
+        point: event.point,
+        copy,
+        isLoading: false,
+      });
+
+      const note = `${copy.observationLine} ${copy.annotationText}`;
+      priorCuriosityNotesRef.current = [
+        ...priorCuriosityNotesRef.current,
+        note,
+      ].slice(-6);
     },
-    [artworkRequestMetadata, visitedHotspotIds],
+    [artworkRequestMetadata, updateRevealedNote],
   );
 
   const handlePointerActivity = useCallback((point: NormalizedPoint) => {
-    setRevealedNote((current) => {
-      if (!current || pointDistance(point, current.point) < 0.075) return current;
-      return null;
-    });
-  }, []);
+    const current = revealedNoteRef.current;
+    if (!current || pointDistance(point, current.point) < 0.075) return;
+
+    activeRequestRef.current += 1;
+    updateRevealedNote(null);
+  }, [updateRevealedNote]);
 
   const closeStory = () => {
     setStoryOpen(false);
-    setRevealedNote(null);
+    activeRequestRef.current += 1;
+    updateRevealedNote(null);
   };
 
   return (
@@ -117,6 +157,8 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
               <CuriosityAnnotation
                 copy={revealedNote.copy}
                 point={revealedNote.point}
+                hotspotLabel={revealedNote.hotspot.label}
+                isLoading={revealedNote.isLoading}
                 onOpen={() => setStoryOpen(true)}
               />
             ) : null}
@@ -126,7 +168,6 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
 
       <div className="viewer-footer page-enter page-enter-3" data-no-dwell>
         <p><span aria-hidden="true" /> Move slowly. Pause where your attention settles.</p>
-        <p>{artwork.location}</p>
         <p>{String(visitedHotspotIds.length).padStart(2, "0")} / {String(artwork.hotspots.length).padStart(2, "0")} observed</p>
       </div>
 

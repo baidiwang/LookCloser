@@ -6,12 +6,16 @@ import type { NormalizedPoint } from "@/types/artwork";
 type CuriosityAnnotationProps = {
   copy: CuratorCopy;
   point: NormalizedPoint;
+  hotspotLabel: string;
+  isLoading: boolean;
   onOpen: () => void;
 };
 
 export function CuriosityAnnotation({
   copy,
   point,
+  hotspotLabel,
+  isLoading,
   onOpen,
 }: CuriosityAnnotationProps) {
   const alignRight = point.x > 0.62;
@@ -26,14 +30,23 @@ export function CuriosityAnnotation({
       }}
       onClick={onOpen}
       data-no-dwell
-      aria-label={`Open curator story: ${copy.label}`}
+      aria-busy={isLoading}
+      aria-label={
+        isLoading
+          ? `Open the developing curator story about ${hotspotLabel}`
+          : `Open curator story: ${copy.storyTitle}`
+      }
     >
       <span className="annotation-marker" aria-hidden="true" />
       <span className="annotation-rule" aria-hidden="true" />
       <span className="annotation-copy">
-        <span>{copy.label}</span>
-        <strong>{copy.curiosityLine}</strong>
-        <small>Read the curator&apos;s note</small>
+        <strong>{copy.observationLine}</strong>
+        <em>{copy.annotationText}</em>
+        <small>
+          {isLoading
+            ? "The curator is looking · Enter the story"
+            : `${hotspotLabel} · Enter the story`}
+        </small>
       </span>
     </button>
   );

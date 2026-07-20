@@ -14,7 +14,7 @@ import type {
   NormalizedPoint,
 } from "@/types/artwork";
 
-const DWELL_DELAY_MS = 2500;
+const DWELL_DELAY_MS = 1750;
 const DWELL_RADIUS_PX = 18;
 
 type PixelPoint = { x: number; y: number };

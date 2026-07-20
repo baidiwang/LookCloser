@@ -13,60 +13,78 @@ export const lastSupperArtwork: ArtworkMetadata = {
       id: "windows-and-horizon",
       region: { x: 0.35, y: 0.18, width: 0.3, height: 0.28 },
       label: "The distant landscape",
-      curiosityLine: "The only open air in the room sits directly behind Christ.",
-      storyTitle: "A window onto eternity",
-      storyText:
-        "Leonardo opens three windows behind the table, placing a softened landscape beyond the compressed drama of the room. Their pale light gathers around Christ without the need for a painted halo. The central opening becomes both architecture and symbol: a quiet threshold between the human scene and something immeasurably distant.",
+      factualSeed:
+        "Three open windows frame a pale landscape directly behind Christ.",
+      storySeeds: [
+        "The distant landscape is the room's only open air and source of natural light.",
+        "The central window gathers light around Christ without a conventional painted halo.",
+        "Leonardo uses the opening as both architecture and a symbolic threshold beyond the human drama.",
+      ],
       storyIndex: "I",
     },
     {
       id: "christ-at-center",
       region: { x: 0.43, y: 0.46, width: 0.14, height: 0.31 },
       label: "The still center",
-      curiosityLine: "Amid every reaction, one figure remains almost perfectly still.",
-      storyTitle: "The geometry of calm",
-      storyText:
-        "Every major perspective line—the ceiling, walls, and tapestries—converges at Christ's head. Around him the apostles break into waves of alarm, yet his triangular silhouette stays grounded and symmetrical. Leonardo makes stillness, rather than movement, the painting's strongest force.",
+      factualSeed:
+        "Christ remains almost perfectly still while every figure around him reacts.",
+      storySeeds: [
+        "The ceiling, walls, and tapestries direct the painting's perspective lines toward Christ's head.",
+        "His body forms a stable triangular silhouette against the apostles' waves of movement.",
+        "Leonardo makes compositional stillness more forceful than the surrounding gestures.",
+      ],
       storyIndex: "II",
     },
     {
       id: "judas-in-shadow",
       region: { x: 0.29, y: 0.49, width: 0.14, height: 0.3 },
       label: "Judas in shadow",
-      curiosityLine: "One face withdraws from the light while the others lean forward.",
-      storyTitle: "The figure who pulls away",
-      storyText:
-        "Judas is not isolated on the opposite side of the table, as earlier painters often showed him. Leonardo keeps him inside the group, but lets his posture recoil and his face fall into shadow. A small purse rests in his hand; his body knows the betrayal before the room does.",
+      factualSeed:
+        "Judas recoils into shadow while remaining seated among the other apostles.",
+      storySeeds: [
+        "Unlike many earlier Last Supper paintings, Judas is not isolated on the opposite side of the table.",
+        "His posture pulls backward and his face falls into shadow as the others lean into the news.",
+        "A small purse in his hand alludes to the payment associated with the betrayal.",
+      ],
       storyIndex: "III",
     },
     {
       id: "thomas-raised-finger",
       region: { x: 0.57, y: 0.4, width: 0.13, height: 0.27 },
       label: "A raised finger",
-      curiosityLine: "A single finger points upward through the surrounding unrest.",
-      storyTitle: "A gesture that returns",
-      storyText:
-        "Thomas raises one finger in a gesture of doubt, urgency, and recognition. The motif quietly anticipates the story for which he will be remembered—and echoes a pointing gesture Leonardo would use again in later works. Here, a tiny movement carries a future narrative.",
+      factualSeed:
+        "Thomas raises one finger through the surrounding unrest.",
+      storySeeds: [
+        "The gesture can suggest doubt, urgency, and recognition at once.",
+        "It anticipates the later story of Thomas seeking physical proof of the resurrection.",
+        "Leonardo returned to the upward-pointing gesture in other works, giving a small movement narrative weight.",
+      ],
       storyIndex: "IV",
     },
     {
       id: "bread-and-hands",
       region: { x: 0.4, y: 0.76, width: 0.25, height: 0.18 },
       label: "Bread and hands",
-      curiosityLine: "The quietest objects on the table hold the scene's deepest meaning.",
-      storyTitle: "A table charged with meaning",
-      storyText:
-        "The bread, wine, dishes, and scattered hands form a second drama beneath the faces. Christ reaches toward the meal as Judas reaches nearby, tightening the connection between communion and betrayal. Ordinary objects become witnesses to the instant the gathering changes forever.",
+      factualSeed:
+        "Bread, wine, dishes, and overlapping hands form a second drama below the faces.",
+      storySeeds: [
+        "Christ and Judas reach near the same food, tightening the visual bond between communion and betrayal.",
+        "The hands below repeat and complicate the emotional reactions visible in the faces above.",
+        "Ordinary table objects become witnesses to the moment the gathering changes.",
+      ],
       storyIndex: "V",
     },
     {
       id: "right-hand-conversation",
       region: { x: 0.7, y: 0.48, width: 0.23, height: 0.33 },
       label: "A wave of disbelief",
-      curiosityLine: "The news travels across the table like a visible wave.",
-      storyTitle: "Thirteen reactions, one moment",
-      storyText:
-        "Leonardo organizes the apostles into groups of three, giving each cluster its own rhythm of protest, disbelief, or private calculation. On the right, gestures overlap like fragments of conversation. The composition feels spontaneous, but every hand and glance has been choreographed.",
+      factualSeed:
+        "Overlapping gestures make the news appear to travel across the table in a wave.",
+      storySeeds: [
+        "Leonardo arranges the apostles in groups of three, each with its own rhythm of reaction.",
+        "On the right, hands and glances overlap like fragments of simultaneous conversation.",
+        "The scene feels spontaneous although every gesture is carefully choreographed.",
+      ],
       storyIndex: "VI",
     },
   ],

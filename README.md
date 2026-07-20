@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Look Closer
 
-## Getting Started
+An immersive museum viewer that notices where a visitor's attention settles and responds with a quiet AI curator note.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000), then enter the artwork viewer. Move slowly over the painting and keep the cursor within a small area for about 1.75 seconds. The annotation is immediately clickable while the dynamic curator copy finishes quietly in the background.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The experience remains fully usable without an API key by falling back to deterministic copy built from the same verified hotspot seeds.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Enable the AI curator
 
-## Learn More
+Add a server-side key to `.env.local`:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+OPENAI_API_KEY=your_key_here
+OPENAI_CURATOR_MODEL=gpt-5.6-sol
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Restart `npm run dev` after changing environment variables. The browser never receives the API key; curator generation runs only in `src/app/api/curator/route.ts` through the OpenAI Responses API and returns strict JSON.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Verify
 
-## Deploy on Vercel
+```bash
+npm run lint
+npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Hotspot metadata lives in `src/data/last-supper.ts`. It contains six invisible regions with factual and deeper-story seeds; final curator wording is generated at request time when an API key is available.

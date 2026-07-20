@@ -15,7 +15,11 @@ export function StoryPanel({
       <div className="story-divider" aria-hidden="true">
         <span />
       </div>
-      <p className="story-text">{copy.storyText}</p>
+      <div className="story-text">
+        {copy.storyParagraphs.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </div>
     </article>
   );
 }

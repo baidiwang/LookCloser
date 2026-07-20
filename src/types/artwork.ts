@@ -9,9 +9,8 @@ export type ArtworkHotspot = {
   id: string;
   region: HotspotRegion;
   label: string;
-  curiosityLine: string;
-  storyTitle: string;
-  storyText: string;
+  factualSeed: string;
+  storySeeds: string[];
   storyIndex: string;
 };
 
