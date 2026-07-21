@@ -14,17 +14,20 @@ export function CuratorPanel({
   onClose: () => void;
 }) {
   return (
-    <aside className="curator-panel" data-no-dwell aria-label="Curator note">
+    <aside className="curator-panel" data-no-dwell aria-label="Curator observation">
+      <div className="curator-bookmark-tab" aria-hidden="true">
+        <span>{hotspot.storyIndex}</span>
+      </div>
       <div className="curator-panel-topline">
-        <p>Look Closer · Curator&apos;s note</p>
-        <button type="button" onClick={onClose} aria-label="Close curator note">
+        <p>Look Closer · Revealed from the painting</p>
+        <button type="button" onClick={onClose} aria-label="Return to the painting">
           <span aria-hidden="true" />
-          Close
+          Continue looking
         </button>
       </div>
       <StoryPanel hotspot={hotspot} copy={copy} />
       <footer className="curator-panel-footer">
-        <p>Let another detail hold your attention.</p>
+        <p>The painting is still waiting. Let another detail hold your attention.</p>
         <button type="button" onClick={onClose}>
           {copy.ctaLabel}
           <span aria-hidden="true" />

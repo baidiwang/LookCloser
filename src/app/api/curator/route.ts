@@ -24,15 +24,19 @@ const curatorSchema = {
       type: "string",
       description: "An elegant editorial title for the deeper curator note.",
     },
-    storyParagraphs: {
-      type: "array",
-      minItems: 2,
-      maxItems: 2,
-      items: { type: "string" },
-      description: "Exactly two concise curator-style story paragraphs.",
+    whyItMatters: {
+      type: "string",
+      description:
+        "A concise curator explanation of why the observed detail matters in the composition.",
+    },
+    noticeNext: {
+      type: "string",
+      description:
+        "A short visual direction that sends the visitor's eyes to a related detail in the painting.",
     },
     ctaLabel: {
       type: "string",
+      enum: ["Return to the painting", "Continue looking", "Keep exploring"],
       description:
         "A short invitation to return to or continue exploring the painting.",
     },
@@ -41,7 +45,8 @@ const curatorSchema = {
     "observationLine",
     "annotationText",
     "storyTitle",
-    "storyParagraphs",
+    "whyItMatters",
+    "noticeNext",
     "ctaLabel",
   ],
   additionalProperties: false,
@@ -75,9 +80,8 @@ function isCuratorCopyContent(value: unknown): value is CuratorCopyContent {
     typeof copy.observationLine === "string" &&
     typeof copy.annotationText === "string" &&
     typeof copy.storyTitle === "string" &&
-    Array.isArray(copy.storyParagraphs) &&
-    copy.storyParagraphs.length === 2 &&
-    copy.storyParagraphs.every((paragraph) => typeof paragraph === "string") &&
+    typeof copy.whyItMatters === "string" &&
+    typeof copy.noticeNext === "string" &&
     typeof copy.ctaLabel === "string"
   );
 }
@@ -91,10 +95,15 @@ function sanitizeInput(value: unknown): CuratorGenerationInput | null {
     !artwork ||
     artwork.id !== lastSupperArtwork.id ||
     typeof input.hotspotId !== "string" ||
+    typeof input.hotspotLabel !== "string" ||
+    typeof input.hotspotVisitCount !== "number" ||
+    !Number.isFinite(input.hotspotVisitCount) ||
     typeof input.dwellTimeMs !== "number" ||
     !Number.isFinite(input.dwellTimeMs) ||
     !Array.isArray(input.visitedHotspotIds) ||
-    !Array.isArray(input.priorCuriosityNotes)
+    !Array.isArray(input.priorCuriosityNotes) ||
+    (input.interactionStage !== "attention-reveal" &&
+      input.interactionStage !== "story-expansion")
   ) {
     return null;
   }
@@ -108,6 +117,11 @@ function sanitizeInput(value: unknown): CuratorGenerationInput | null {
       location: lastSupperArtwork.location,
     },
     hotspotId: input.hotspotId,
+    hotspotLabel: input.hotspotLabel.slice(0, 120),
+    hotspotVisitCount: Math.min(
+      Math.max(Math.round(input.hotspotVisitCount), 1),
+      20,
+    ),
     dwellTimeMs: Math.min(Math.max(Math.round(input.dwellTimeMs), 0), 30_000),
     visitedHotspotIds: input.visitedHotspotIds
       .filter((id): id is string => typeof id === "string")
@@ -116,6 +130,7 @@ function sanitizeInput(value: unknown): CuratorGenerationInput | null {
       .filter((note): note is string => typeof note === "string")
       .map((note) => note.slice(0, 240))
       .slice(-6),
+    interactionStage: input.interactionStage,
   };
 }
 
@@ -134,21 +149,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unknown hotspot" }, { status: 404 });
   }
 
+  if (input.hotspotLabel !== hotspot.label) {
+    return NextResponse.json(
+      { error: "Hotspot label does not match artwork data" },
+      { status: 400 },
+    );
+  }
+
   const fallback = () => NextResponse.json(createFallbackCuratorCopy(input, hotspot));
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) return fallback();
 
-  const hasVisitedBefore = input.visitedHotspotIds.includes(hotspot.id);
+  const hasVisitedBefore = input.hotspotVisitCount > 1;
   const curatorContext = {
     artwork: input.artwork,
     attention: {
       hotspotId: hotspot.id,
       hotspotLabel: hotspot.label,
+      hotspotVisitCount: input.hotspotVisitCount,
       dwellTimeMs: input.dwellTimeMs,
       isReturnVisit: hasVisitedBefore,
       visitedHotspotIds: input.visitedHotspotIds,
       priorCuriosityNotes: input.priorCuriosityNotes,
+      interactionStage: input.interactionStage,
     },
     verifiedSeeds: {
       factualSeed: hotspot.factualSeed,
@@ -168,16 +192,20 @@ export async function POST(request: Request) {
         model: CURATOR_MODEL,
         store: false,
         reasoning: { effort: "none" },
-        max_output_tokens: 520,
+        max_output_tokens: 480,
         instructions: [
           "You are the quiet curator inside an immersive museum exhibition.",
           "Write in refined, restrained English with an observant human voice—not a chatbot voice.",
-          "The first line must notice the visitor's attention behavior. If this is a return visit, acknowledge that they came back.",
+          "The first line must notice the visitor's attention behavior, not describe the artwork.",
+          "For a first visit, acknowledge that their attention settled here. For a second visit, acknowledge that they came back. For three or more visits, gently notice the repeated pattern.",
+          "Use prior notes and visited hotspot IDs only when they genuinely support a pattern; never invent a psychological profile.",
           "Keep the annotation suspenseful and 8–18 words. Do not explain everything there.",
+          "Treat observationLine as the annotation intro and annotationText as its short subtitle.",
           "Ground every art claim only in the verified factual and story seeds. Never invent details.",
-          "Write exactly two story paragraphs, each 35–65 words, as a curator continuing the moment the visitor noticed.",
+          "Write whyItMatters as one compact 22–38 word curator explanation.",
+          "Write noticeNext as one visual direction of 14–26 words that sends the visitor's eyes back into the painting.",
           "Avoid AI-product language, rhetorical filler, and exclamation marks.",
-          "End with a CTA that invites the visitor back into the painting.",
+          "Choose only one supplied exhibition CTA label.",
         ].join(" "),
         input: JSON.stringify(curatorContext),
         text: {

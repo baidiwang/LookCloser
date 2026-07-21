@@ -8,20 +8,23 @@ export function createFallbackCuratorCopy(
   input: CuratorGenerationInput,
   hotspot: ArtworkHotspot,
 ): CuratorCopy {
-  const isReturnVisit = input.visitedHotspotIds.includes(hotspot.id);
+  const isReturnVisit = input.hotspotVisitCount > 1;
   const [firstSeed, ...remainingSeeds] = hotspot.storySeeds;
 
+  const observationLine =
+    input.hotspotVisitCount >= 3
+      ? "Your attention keeps returning here."
+      : isReturnVisit
+        ? "You came back to this detail."
+        : "I noticed your attention settled here.";
+
   return {
-    observationLine: isReturnVisit
-      ? "You came back to this detail."
-      : "I noticed your attention settled here.",
+    observationLine,
     annotationText: hotspot.factualSeed,
     storyTitle: hotspot.label,
-    storyParagraphs: [
-      firstSeed ?? hotspot.factualSeed,
-      remainingSeeds.join(" ") || hotspot.factualSeed,
-    ],
-    ctaLabel: isReturnVisit ? "Look again" : "Return to the painting",
+    whyItMatters: firstSeed ?? hotspot.factualSeed,
+    noticeNext: remainingSeeds.join(" ") || hotspot.factualSeed,
+    ctaLabel: isReturnVisit ? "Continue looking" : "Return to the painting",
     source: "fallback",
   };
 }

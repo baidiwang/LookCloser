@@ -6,16 +6,20 @@ export type CuratorGenerationInput = {
     "id" | "title" | "artist" | "date" | "location"
   >;
   hotspotId: string;
+  hotspotLabel: string;
+  hotspotVisitCount: number;
   dwellTimeMs: number;
   visitedHotspotIds: string[];
   priorCuriosityNotes: string[];
+  interactionStage: "attention-reveal" | "story-expansion";
 };
 
 export type CuratorCopyContent = {
   observationLine: string;
   annotationText: string;
   storyTitle: string;
-  storyParagraphs: string[];
+  whyItMatters: string;
+  noticeNext: string;
   ctaLabel: string;
 };
 

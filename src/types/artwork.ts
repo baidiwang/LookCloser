@@ -30,8 +30,20 @@ export type NormalizedPoint = {
   y: number;
 };
 
+export type ViewportPoint = {
+  x: number;
+  y: number;
+};
+
 export type AttentionEvent = {
   hotspot: ArtworkHotspot;
   point: NormalizedPoint;
+  viewportPoint: ViewportPoint;
   dwellTimeMs: number;
+};
+
+export type PointerAttentionEvent = {
+  point: NormalizedPoint;
+  viewportPoint: ViewportPoint;
+  hotspot: ArtworkHotspot | null;
 };
