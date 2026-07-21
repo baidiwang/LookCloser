@@ -11,7 +11,7 @@ export function createFallbackCuratorCopy(
   const isReturnVisit = input.hotspotVisitCount > 1;
   const [firstSeed, ...remainingSeeds] = hotspot.storySeeds;
 
-  const observationLine =
+  const annotation =
     input.hotspotVisitCount >= 3
       ? "Your attention keeps returning here."
       : isReturnVisit
@@ -19,12 +19,13 @@ export function createFallbackCuratorCopy(
         : "I noticed your attention settled here.";
 
   return {
-    observationLine,
-    annotationText: hotspot.factualSeed,
-    storyTitle: hotspot.label,
-    whyItMatters: firstSeed ?? hotspot.factualSeed,
-    noticeNext: remainingSeeds.join(" ") || hotspot.factualSeed,
-    ctaLabel: isReturnVisit ? "Continue looking" : "Return to the painting",
+    annotation,
+    subtitle: hotspot.factualSeed,
+    title: hotspot.label,
+    observation: firstSeed ?? hotspot.factualSeed,
+    why: remainingSeeds[0] ?? firstSeed ?? hotspot.factualSeed,
+    next: remainingSeeds.slice(1).join(" ") || hotspot.factualSeed,
+    cta: isReturnVisit ? "Continue looking" : "Return to the painting",
     source: "fallback",
   };
 }

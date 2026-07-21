@@ -15,12 +15,13 @@ export type CuratorGenerationInput = {
 };
 
 export type CuratorCopyContent = {
-  observationLine: string;
-  annotationText: string;
-  storyTitle: string;
-  whyItMatters: string;
-  noticeNext: string;
-  ctaLabel: string;
+  annotation: string;
+  subtitle: string;
+  title: string;
+  observation: string;
+  why: string;
+  next: string;
+  cta: string;
 };
 
 export type CuratorCopy = CuratorCopyContent & {

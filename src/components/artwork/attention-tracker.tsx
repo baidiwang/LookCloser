@@ -15,6 +15,7 @@ import type {
   NormalizedPoint,
   PointerAttentionEvent,
 } from "@/types/artwork";
+import { resolveHotspotAtPoint } from "@/lib/hotspot-mapping";
 
 const ATTENTION_TARGET_MS = 1700;
 const RETURN_TARGET_MS = 1425;
@@ -38,31 +39,6 @@ type AttentionTrackerProps = {
 
 function pixelDistance(a: PixelPoint, b: PixelPoint) {
   return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function contains(hotspot: ArtworkHotspot, point: NormalizedPoint) {
-  const { x, y, width, height } = hotspot.region;
-  return (
-    point.x >= x &&
-    point.x <= x + width &&
-    point.y >= y &&
-    point.y <= y + height
-  );
-}
-
-function distanceToRegionCenter(hotspot: ArtworkHotspot, point: NormalizedPoint) {
-  const centerX = hotspot.region.x + hotspot.region.width / 2;
-  const centerY = hotspot.region.y + hotspot.region.height / 2;
-  return Math.hypot(point.x - centerX, point.y - centerY);
-}
-
-function findHotspot(hotspots: ArtworkHotspot[], point: NormalizedPoint) {
-  return hotspots
-    .filter((hotspot) => contains(hotspot, point))
-    .sort(
-      (a, b) =>
-        distanceToRegionCenter(a, point) - distanceToRegionCenter(b, point),
-    )[0];
 }
 
 function attentionRate(speed: number) {
@@ -219,7 +195,7 @@ export function AttentionTracker({
       cursorRef.current.style.opacity = "1";
     }
 
-    const hotspot = findHotspot(hotspots, point);
+    const hotspot = resolveHotspotAtPoint(hotspots, point);
     onPointerActivity?.({
       point,
       viewportPoint: pixelPoint,

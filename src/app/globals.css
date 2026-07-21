@@ -6,9 +6,15 @@
   --muted: #7b766d;
   --quiet: #504d47;
   --gold: #d3ad6d;
-  --display: var(--font-source-serif), Georgia, serif;
-  --serif: var(--font-source-serif), Georgia, serif;
-  --sans: var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --type-editorial: var(--font-source-serif), Georgia, serif;
+  --type-ui: var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --type-label-size: 0.75rem;
+  --type-label-tracking: 0.1em;
+  --type-body-size: 1.0625rem;
+  --type-body-leading: 1.55;
+  --display: var(--type-editorial);
+  --serif: var(--type-editorial);
+  --sans: var(--type-ui);
 }
 
 * {
@@ -91,15 +97,22 @@ button {
   align-items: center;
   justify-content: space-between;
   color: #8b877f;
-  font-size: 11.5px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.landing-header > p {
+  margin: 0;
+  color: #716d66;
+  letter-spacing: 0.06em;
 }
 
 .wordmark {
   display: flex;
   align-items: center;
   gap: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
 .wordmark-dot {
@@ -136,9 +149,32 @@ button {
   line-height: 0.98;
 }
 
-.landing-hero h1 span,
-.landing-hero h1 em {
+.landing-hero h1 > span,
+.landing-hero h1 > em {
   display: block;
+}
+
+.eye-trace {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+
+.eye-trace::after {
+  position: absolute;
+  right: -0.03em;
+  bottom: -0.06em;
+  left: 0.02em;
+  z-index: 1;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(211, 173, 109, 0.04), rgba(222, 184, 116, 0.82) 20%, rgba(211, 173, 109, 0.56) 78%, rgba(211, 173, 109, 0.04));
+  box-shadow: 0 1px 9px rgba(211, 173, 109, 0.18);
+  content: "";
+  pointer-events: none;
+  transform: rotate(-1.5deg) scaleX(0);
+  transform-origin: left center;
+  animation: eye-trace-draw 1.1s 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .landing-hero h1 em {
@@ -215,11 +251,10 @@ button {
   left: 5.25vw;
   right: 4.2vw;
   display: flex;
-  justify-content: space-between;
-  color: #504e49;
-  font-size: 10.5px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
+  justify-content: flex-end;
+  color: #56524c;
+  font-size: 12px;
+  letter-spacing: 0.08em;
 }
 
 .utility-dock {
@@ -281,6 +316,7 @@ button {
   position: absolute;
   inset: -8%;
   opacity: 0.34;
+  transition: opacity 1s ease;
 }
 
 .viewer-ambient img {
@@ -316,11 +352,11 @@ button {
 .viewer-brand,
 .viewer-title p,
 .viewer-footer {
-  color: rgba(218, 211, 199, 0.55);
-  font-size: 11px;
+  color: rgba(229, 222, 210, 0.68);
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
   font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: var(--type-label-tracking);
 }
 
 .viewer-return {
@@ -353,11 +389,12 @@ button {
 
 .viewer-title h1 {
   margin: 0 0 5px;
-  color: rgba(239, 233, 222, 0.82);
-  font-family: var(--display);
-  font-size: 19px;
+  color: rgba(245, 239, 228, 0.9);
+  font-family: var(--type-editorial);
+  font-size: 22px;
   font-weight: 400;
-  letter-spacing: 0.015em;
+  letter-spacing: -0.012em;
+  line-height: 1.05;
 }
 
 .viewer-title p,
@@ -366,8 +403,8 @@ button {
 }
 
 .viewer-title p {
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
+  font-size: var(--type-label-size);
+  letter-spacing: 0.08em;
 }
 
 .viewer-brand {
@@ -484,6 +521,10 @@ button {
   transform: scale(1.01);
 }
 
+.story-is-open .viewer-ambient {
+  opacity: 0.46;
+}
+
 .viewer-footer {
   position: absolute;
   right: 3.2vw;
@@ -516,7 +557,7 @@ button {
 
 .viewer-footer p:last-child {
   justify-self: end;
-  color: rgba(207, 201, 190, 0.36);
+  color: rgba(218, 211, 199, 0.52);
 }
 
 .attention-progress {
@@ -606,6 +647,7 @@ button {
 }
 
 .museum-annotation {
+  --annotation-gap: 26px;
   position: fixed;
   z-index: 30;
   display: grid;
@@ -626,8 +668,6 @@ button {
     inset 0 1px rgba(255, 255, 255, 0.025);
   backdrop-filter: blur(18px) saturate(0.72);
   cursor: pointer;
-  transform: translate(24px, -50%);
-  transform-origin: left center;
   animation: annotation-arrive 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
   transition:
     left 80ms linear,
@@ -639,6 +679,13 @@ button {
     box-shadow 350ms ease;
 }
 
+.museum-annotation::after {
+  position: absolute;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(218, 183, 119, 0.62), rgba(218, 183, 119, 0.08));
+  content: "";
+}
+
 .museum-annotation-leaving {
   pointer-events: none;
   opacity: 0;
@@ -646,29 +693,74 @@ button {
   animation: none;
 }
 
-.museum-annotation-right {
-  transform: translate(calc(-100% - 24px), -50%);
+.museum-annotation-anchor-right {
+  transform: translate(var(--annotation-gap), -50%);
+  transform-origin: left center;
+}
+
+.museum-annotation-anchor-right::after {
+  top: 50%;
+  right: 100%;
+  width: var(--annotation-gap);
+  height: 1px;
+}
+
+.museum-annotation-anchor-left {
+  grid-template-columns: 1fr 38px 8px;
+  transform: translate(calc(-100% - var(--annotation-gap)), -50%);
   transform-origin: right center;
 }
 
-.museum-annotation-above {
-  transform: translate(24px, calc(-100% - 20px));
-  transform-origin: left bottom;
+.museum-annotation-anchor-left::after {
+  top: 50%;
+  left: 100%;
+  width: var(--annotation-gap);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(218, 183, 119, 0.08), rgba(218, 183, 119, 0.62));
 }
 
-.museum-annotation-right.museum-annotation-above {
-  transform: translate(calc(-100% - 24px), calc(-100% - 20px));
-  transform-origin: right bottom;
+.museum-annotation-anchor-left .annotation-copy {
+  grid-column: 1;
+  grid-row: 1;
 }
 
-.museum-annotation-centered {
-  transform: translate(-50%, 24px);
+.museum-annotation-anchor-left .annotation-rule {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  background: linear-gradient(90deg, rgba(218, 183, 119, 0.08), rgba(218, 183, 119, 0.7));
+}
+
+.museum-annotation-anchor-left .annotation-marker {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.museum-annotation-anchor-top {
+  transform: translate(-50%, calc(-100% - var(--annotation-gap)));
+  transform-origin: center bottom;
+}
+
+.museum-annotation-anchor-top::after {
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: var(--annotation-gap);
+  background: linear-gradient(180deg, rgba(218, 183, 119, 0.62), rgba(218, 183, 119, 0.08));
+}
+
+.museum-annotation-anchor-bottom {
+  transform: translate(-50%, var(--annotation-gap));
   transform-origin: center top;
 }
 
-.museum-annotation-centered.museum-annotation-above {
-  transform: translate(-50%, calc(-100% - 20px));
-  transform-origin: center bottom;
+.museum-annotation-anchor-bottom::after {
+  bottom: 100%;
+  left: 50%;
+  width: 1px;
+  height: var(--annotation-gap);
+  background: linear-gradient(180deg, rgba(218, 183, 119, 0.08), rgba(218, 183, 119, 0.62));
 }
 
 .museum-annotation:hover {
@@ -708,17 +800,16 @@ button {
 
 .annotation-copy small {
   display: block;
-  font-family: var(--sans);
-  font-size: 10.5px;
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .annotation-copy strong {
   display: block;
-  font-family: var(--serif);
-  font-size: clamp(18px, 1.5vw, 22px);
+  font-family: var(--type-editorial);
+  font-size: clamp(20px, 1.6vw, 24px);
   font-weight: 400;
   line-height: 1.2;
 }
@@ -726,9 +817,9 @@ button {
 .annotation-copy em {
   display: block;
   margin-top: 6px;
-  color: rgba(233, 226, 214, 0.66);
-  font-family: var(--display);
-  font-size: clamp(15px, 1.15vw, 17px);
+  color: rgba(239, 232, 220, 0.74);
+  font-family: var(--type-editorial);
+  font-size: clamp(16px, 1.2vw, 18px);
   font-weight: 400;
   line-height: 1.28;
 }
@@ -736,8 +827,8 @@ button {
 .annotation-copy small {
   margin-top: 10px;
   overflow: hidden;
-  color: rgba(218, 183, 119, 0.53);
-  letter-spacing: 0.13em;
+  color: rgba(224, 190, 130, 0.68);
+  letter-spacing: 0.075em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -755,9 +846,9 @@ button {
   border: 1px solid rgba(231, 218, 197, 0.13);
   border-right: 0;
   background:
-    linear-gradient(150deg, rgba(24, 21, 16, 0.96), rgba(7, 8, 6, 0.955));
+    linear-gradient(90deg, rgba(24, 21, 16, 0.9), rgba(13, 13, 10, 0.965) 20%, rgba(7, 8, 6, 0.982));
   box-shadow:
-    -34px 0 100px rgba(0, 0, 0, 0.54),
+    -16px 0 54px rgba(2, 2, 1, 0.32),
     -1px 0 rgba(207, 166, 96, 0.1);
   backdrop-filter: blur(30px) saturate(0.72);
   cursor: default;
@@ -799,8 +890,8 @@ button {
   background: linear-gradient(180deg, #d1ae73, #aa834c);
   box-shadow: 0 7px 18px rgba(0, 0, 0, 0.28);
   clip-path: polygon(0 0, 100% 0, 100% 76%, 50% 100%, 0 76%);
-  font-family: var(--sans);
-  font-size: 10px;
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
   font-weight: 600;
   letter-spacing: 0.12em;
 }
@@ -811,11 +902,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: rgba(229, 220, 204, 0.54);
-  font-size: 10.5px;
+  color: rgba(235, 226, 210, 0.66);
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.075em;
 }
 
 .curator-panel-topline p {
@@ -831,8 +922,7 @@ button {
   color: inherit;
   background: transparent;
   cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.09em;
 }
 
 .curator-panel-topline button span {
@@ -859,19 +949,18 @@ button {
 
 .story-index {
   margin: 0 0 12px;
-  color: rgba(218, 183, 119, 0.62);
-  font-family: var(--sans);
-  font-size: 11px;
+  color: rgba(224, 190, 130, 0.76);
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .story-attention-line {
   margin: 0 0 12px;
-  color: rgba(231, 207, 166, 0.75);
-  font-family: var(--serif);
-  font-size: 16.5px;
+  color: rgba(238, 215, 176, 0.82);
+  font-family: var(--type-editorial);
+  font-size: 18px;
   font-style: italic;
   line-height: 1.35;
 }
@@ -880,7 +969,7 @@ button {
   max-width: 390px;
   margin: 0;
   color: #eee7db;
-  font-family: var(--display);
+  font-family: var(--type-editorial);
   font-size: clamp(36px, 3.15vw, 46px);
   font-weight: 400;
   letter-spacing: -0.025em;
@@ -903,10 +992,10 @@ button {
 
 .curator-section > p:last-child {
   margin: 0;
-  color: rgba(239, 231, 219, 0.77);
-  font-family: var(--serif);
-  font-size: 17px;
-  line-height: 1.5;
+  color: rgba(244, 236, 223, 0.84);
+  font-family: var(--type-editorial);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-leading);
 }
 
 .curator-section-label {
@@ -914,17 +1003,17 @@ button {
   align-items: center;
   gap: 9px;
   margin: 0 0 8px;
-  color: rgba(216, 180, 115, 0.63);
-  font-family: var(--sans);
-  font-size: 10.5px;
+  color: rgba(224, 190, 130, 0.76);
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .curator-section-label span {
-  color: rgba(224, 215, 201, 0.28);
-  font-size: 9.5px;
+  color: rgba(230, 220, 204, 0.46);
+  font-size: 0.6875rem;
 }
 
 .curator-section-next {
@@ -941,11 +1030,11 @@ button {
   align-items: flex-start;
   flex-direction: column;
   gap: 13px;
-  color: rgba(226, 217, 201, 0.46);
-  font-size: 10.5px;
-  letter-spacing: 0.11em;
+  color: rgba(235, 226, 210, 0.62);
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
+  letter-spacing: 0.07em;
   line-height: 1.55;
-  text-transform: uppercase;
 }
 
 .curator-panel-footer p {
@@ -961,10 +1050,10 @@ button {
   border: 0;
   border-top: 1px solid rgba(218, 183, 119, 0.2);
   color: rgba(239, 232, 220, 0.88);
-  font-family: var(--sans);
-  font-size: 11px;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-family: var(--type-ui);
+  font-size: var(--type-label-size);
+  font-weight: 500;
+  letter-spacing: 0.08em;
   background: transparent;
   cursor: pointer;
   transition: color 300ms ease, border-color 300ms ease;
@@ -1000,9 +1089,14 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes eye-trace-draw {
+  from { transform: rotate(-1.5deg) scaleX(0); }
+  to { transform: rotate(-1.5deg) scaleX(1); }
+}
+
 @keyframes annotation-arrive {
-  from { opacity: 0; filter: blur(5px); clip-path: inset(0 100% 0 0); }
-  to { opacity: 1; filter: blur(0); clip-path: inset(0 0 0 0); }
+  from { opacity: 0; filter: blur(5px); }
+  to { opacity: 1; filter: blur(0); }
 }
 
 @keyframes curator-panel-enter {
@@ -1045,8 +1139,7 @@ button {
     right: 7vw;
   }
 
-  .landing-header > p,
-  .landing-footer > p:first-child {
+  .landing-header > p {
     display: none;
   }
 
@@ -1111,34 +1204,18 @@ button {
     bottom: 3vh;
     left: 5vw;
     display: block;
-    font-size: 9.5px;
-    letter-spacing: 0.18em;
+    font-size: var(--type-label-size);
+    letter-spacing: 0.08em;
   }
 
   .museum-annotation {
+    --annotation-gap: 18px;
     width: min(340px, 78vw);
     grid-template-columns: 8px 32px 1fr;
-    transform: translate(16px, -50%);
   }
 
-  .museum-annotation-right {
-    transform: translate(calc(-100% - 16px), -50%);
-  }
-
-  .museum-annotation-above {
-    transform: translate(16px, calc(-100% - 16px));
-  }
-
-  .museum-annotation-right.museum-annotation-above {
-    transform: translate(calc(-100% - 16px), calc(-100% - 16px));
-  }
-
-  .museum-annotation-centered {
-    transform: translate(-50%, 16px);
-  }
-
-  .museum-annotation-centered.museum-annotation-above {
-    transform: translate(-50%, calc(-100% - 16px));
+  .museum-annotation-anchor-left {
+    grid-template-columns: 1fr 32px 8px;
   }
 
   .annotation-rule {

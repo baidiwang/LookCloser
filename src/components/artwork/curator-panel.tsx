@@ -14,7 +14,14 @@ export function CuratorPanel({
   onClose: () => void;
 }) {
   return (
-    <aside className="curator-panel" data-no-dwell aria-label="Curator observation">
+    <aside
+      className="curator-panel"
+      data-no-dwell
+      data-hotspot-id={hotspot.id}
+      data-story-index={hotspot.storyIndex}
+      data-copy-source={copy.source}
+      aria-label="Curator observation"
+    >
       <div className="curator-bookmark-tab" aria-hidden="true">
         <span>{hotspot.storyIndex}</span>
       </div>
@@ -29,7 +36,7 @@ export function CuratorPanel({
       <footer className="curator-panel-footer">
         <p>The painting is still waiting. Let another detail hold your attention.</p>
         <button type="button" onClick={onClose}>
-          {copy.ctaLabel}
+          {copy.cta}
           <span aria-hidden="true" />
         </button>
       </footer>

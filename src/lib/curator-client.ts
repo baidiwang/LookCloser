@@ -22,8 +22,18 @@ export async function generateCuratorCopy(
       throw new Error(`Curator request failed with ${response.status}`);
     }
 
-    return (await response.json()) as CuratorCopy;
-  } catch {
+    const copy = (await response.json()) as CuratorCopy;
+    if (copy.source !== "openai" && copy.source !== "fallback") {
+      throw new Error("Curator response did not identify its source");
+    }
+
+    return copy;
+  } catch (error) {
+    console.warn("[Look Closer][curator] browser fallback", {
+      hotspotId: hotspot.id,
+      storyIndex: hotspot.storyIndex,
+      reason: error instanceof Error ? error.message : "unknown error",
+    });
     return createFallbackCuratorCopy(input, hotspot);
   }
 }

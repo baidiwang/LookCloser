@@ -11,7 +11,7 @@ export default function Home() {
           <span className="wordmark-dot" aria-hidden="true" />
           <span>Look Closer</span>
         </div>
-        <p>Vol. 01 · Da Vinci</p>
+        <p>Leonardo da Vinci · 1495–1498</p>
       </header>
 
       <section className="landing-hero" aria-labelledby="landing-title">
@@ -19,7 +19,9 @@ export default function Home() {
           An immersive exhibition
         </p>
         <h1 id="landing-title" className="page-enter page-enter-3">
-          <span>AI notices what catches your eye</span>
+          <span>
+            AI notices what catches your <span className="eye-trace">eye</span>
+          </span>
           <em>—and reveals the stories behind it.</em>
         </h1>
         <div className="landing-action page-enter page-enter-4">
@@ -32,7 +34,6 @@ export default function Home() {
       </section>
 
       <footer className="landing-footer page-enter page-enter-4">
-        <p>Est. MMXXVI</p>
         <p>Look with intention</p>
       </footer>
 

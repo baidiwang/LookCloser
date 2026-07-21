@@ -24,9 +24,16 @@ import type {
 type RevealedNote = {
   hotspot: ArtworkHotspot;
   viewportPoint: ViewportPoint;
+  /** Frozen at reveal time so an async curator response never rewrites a note mid-read. */
+  annotationCopy: CuratorCopy;
   copy: CuratorCopy;
   isLoading: boolean;
   isLeaving: boolean;
+};
+
+type LockedStory = {
+  hotspot: ArtworkHotspot;
+  copy: CuratorCopy;
 };
 
 function hotspotContainsPoint(
@@ -45,6 +52,7 @@ function hotspotContainsPoint(
 export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
   const [revealedNote, setRevealedNote] = useState<RevealedNote | null>(null);
   const [storyOpen, setStoryOpen] = useState(false);
+  const [lockedStory, setLockedStory] = useState<LockedStory | null>(null);
   const [visitedHotspotIds, setVisitedHotspotIds] = useState<string[]>([]);
   const storyOpenRef = useRef(false);
   const activeRequestRef = useRef(0);
@@ -124,14 +132,19 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
   );
 
   const storyFocusShift = useMemo(() => {
-    if (!storyOpen || !revealedNote) return 0;
+    if (!storyOpen || !lockedStory) return 0;
     const regionCenter =
-      revealedNote.hotspot.region.x + revealedNote.hotspot.region.width / 2;
-    return (0.46 - regionCenter) * 100;
-  }, [revealedNote, storyOpen]);
+      lockedStory.hotspot.region.x + lockedStory.hotspot.region.width / 2;
+    const desiredShift = (0.44 - regionCenter) * 100;
+
+    // Preserve enough artwork beneath the insert to avoid exposing a dark seam.
+    return Math.min(4.5, Math.max(-11, desiredShift));
+  }, [lockedStory, storyOpen]);
 
   const handleDwell = useCallback(
     async (event: AttentionEvent) => {
+      if (storyOpenRef.current) return;
+
       const payload: CuratorGenerationInput = {
         artwork: artworkRequestMetadata,
         hotspotId: event.hotspot.id,
@@ -144,6 +157,15 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
         interactionStage: "attention-reveal",
       };
 
+      if (process.env.NODE_ENV === "development") {
+        console.info("[Look Closer][attention] hotspot selected", {
+          hotspotId: event.hotspot.id,
+          hotspotLabel: event.hotspot.label,
+          storyIndex: event.hotspot.storyIndex,
+          dwellTimeMs: event.dwellTimeMs,
+        });
+      }
+
       cancelAnnotationExit();
       const requestId = ++activeRequestRef.current;
       const fallbackCopy = createFallbackCuratorCopy(payload, event.hotspot);
@@ -151,6 +173,7 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
       updateRevealedNote({
         hotspot: event.hotspot,
         viewportPoint: event.viewportPoint,
+        annotationCopy: fallbackCopy,
         copy: fallbackCopy,
         isLoading: true,
         isLeaving: false,
@@ -171,20 +194,33 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
       const copy = await generateCuratorCopy(payload, event.hotspot);
       if (requestId !== activeRequestRef.current) return;
 
-      const currentViewportPoint =
-        revealedNoteRef.current?.hotspot.id === event.hotspot.id
-          ? revealedNoteRef.current.viewportPoint
-          : event.viewportPoint;
+      if (process.env.NODE_ENV === "development") {
+        console.info("[Look Closer][curator] copy received", {
+          hotspotId: event.hotspot.id,
+          storyIndex: event.hotspot.storyIndex,
+          source: copy.source,
+        });
+      }
+
+      const currentNote = revealedNoteRef.current;
+      const isCurrentHotspot = currentNote?.hotspot.id === event.hotspot.id;
+      const currentViewportPoint = isCurrentHotspot
+        ? currentNote.viewportPoint
+        : event.viewportPoint;
+      const annotationCopy = isCurrentHotspot
+        ? currentNote.annotationCopy
+        : fallbackCopy;
 
       updateRevealedNote({
         hotspot: event.hotspot,
         viewportPoint: currentViewportPoint,
+        annotationCopy,
         copy,
         isLoading: false,
         isLeaving: false,
       });
 
-      const note = `${copy.observationLine} ${copy.annotationText}`;
+      const note = `${annotationCopy.annotation} ${annotationCopy.subtitle}`;
       priorCuriosityNotesRef.current = [
         ...priorCuriosityNotesRef.current,
         note,
@@ -195,6 +231,8 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
 
   const handlePointerActivity = useCallback(
     (activity: PointerAttentionEvent | null) => {
+      if (storyOpenRef.current) return;
+
       const current = revealedNoteRef.current;
       if (!current) return;
 
@@ -228,15 +266,31 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
   }, [cancelAnnotationExit, updateRevealedNote]);
 
   const openStory = useCallback(() => {
-    holdAnnotation();
+    const current = revealedNoteRef.current;
+    if (!current || storyOpenRef.current) return;
+
+    cancelAnnotationExit();
     storyOpenRef.current = true;
+    setLockedStory({
+      hotspot: current.hotspot,
+      copy: current.copy,
+    });
+
+    if (process.env.NODE_ENV === "development") {
+      console.info("[Look Closer][story] bookmark opened", {
+        hotspotId: current.hotspot.id,
+        storyIndex: current.hotspot.storyIndex,
+        source: current.copy.source,
+      });
+    }
     setStoryOpen(true);
-  }, [holdAnnotation]);
+  }, [cancelAnnotationExit]);
 
   const closeStory = () => {
     cancelAnnotationExit();
     storyOpenRef.current = false;
     setStoryOpen(false);
+    setLockedStory(null);
     activeRequestRef.current += 1;
     updateRevealedNote(null);
   };
@@ -281,16 +335,16 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
               sizes="100vw"
             />
             <div className="artwork-surface-vignette" aria-hidden="true" />
-            {storyOpen && revealedNote ? (
+            {storyOpen && lockedStory ? (
               <>
                 <div className="artwork-story-veil" aria-hidden="true" />
                 <div
                   className="story-focus-glow"
                   style={{
-                    left: `${revealedNote.hotspot.region.x * 100}%`,
-                    top: `${revealedNote.hotspot.region.y * 100}%`,
-                    width: `${revealedNote.hotspot.region.width * 100}%`,
-                    height: `${revealedNote.hotspot.region.height * 100}%`,
+                    left: `${lockedStory.hotspot.region.x * 100}%`,
+                    top: `${lockedStory.hotspot.region.y * 100}%`,
+                    width: `${lockedStory.hotspot.region.width * 100}%`,
+                    height: `${lockedStory.hotspot.region.height * 100}%`,
                   }}
                   aria-hidden="true"
                 />
@@ -302,9 +356,10 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
 
       {revealedNote && !storyOpen ? (
         <CuriosityAnnotation
-          copy={revealedNote.copy}
+          copy={revealedNote.annotationCopy}
           point={revealedNote.viewportPoint}
           hotspotLabel={revealedNote.hotspot.label}
+          placement={revealedNote.hotspot.annotationPlacement}
           isLoading={revealedNote.isLoading}
           isLeaving={revealedNote.isLeaving}
           onHold={holdAnnotation}
@@ -317,10 +372,10 @@ export function ArtworkViewer({ artwork }: { artwork: ArtworkMetadata }) {
         <p>{String(visitedHotspotIds.length).padStart(2, "0")} / {String(artwork.hotspots.length).padStart(2, "0")} observed</p>
       </div>
 
-      {storyOpen && revealedNote ? (
+      {storyOpen && lockedStory ? (
         <CuratorPanel
-          hotspot={revealedNote.hotspot}
-          copy={revealedNote.copy}
+          hotspot={lockedStory.hotspot}
+          copy={lockedStory.copy}
           onClose={closeStory}
         />
       ) : null}

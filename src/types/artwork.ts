@@ -5,9 +5,19 @@ export type HotspotRegion = {
   height: number;
 };
 
+export type AnnotationAnchorDirection = "left" | "right" | "top" | "bottom";
+
+export type AnnotationPlacement = {
+  /** The side of the attention point on which the curator note should open. */
+  direction: AnnotationAnchorDirection;
+  /** A small viewport-pixel adjustment for visually asymmetric details. */
+  offset?: ViewportPoint;
+};
+
 export type ArtworkHotspot = {
   id: string;
   region: HotspotRegion;
+  annotationPlacement?: AnnotationPlacement;
   label: string;
   factualSeed: string;
   storySeeds: string[];

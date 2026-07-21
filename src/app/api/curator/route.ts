@@ -1,64 +1,50 @@
 import { NextResponse } from "next/server";
 import { lastSupperArtwork } from "@/data/last-supper";
 import { createFallbackCuratorCopy } from "@/lib/curator-fallback";
-import type { CuratorCopyContent, CuratorGenerationInput } from "@/types/curator";
+import {
+  findHotspotById,
+  validateHotspotMapping,
+} from "@/lib/hotspot-mapping";
+import {
+  CURATOR_OUTPUT_SCHEMA,
+  isCuratorCopyContent,
+} from "@/prompts/curator-output-schema";
+import { buildCuratorSystemPrompt } from "@/prompts/curator-system-prompt";
+import {
+  buildCuratorUserPrompt,
+  getAttentionPattern,
+} from "@/prompts/curator-user-prompt";
+import type { CuratorGenerationInput } from "@/types/curator";
 
 export const runtime = "nodejs";
 
 const CURATOR_MODEL = process.env.OPENAI_CURATOR_MODEL ?? "gpt-5.6-sol";
+const hotspotMappingIssues = validateHotspotMapping(lastSupperArtwork.hotspots);
 
-const curatorSchema = {
-  type: "object",
-  properties: {
-    observationLine: {
-      type: "string",
-      description:
-        "A brief human observation about where or how the visitor's attention lingered.",
-    },
-    annotationText: {
-      type: "string",
-      description:
-        "A suspenseful factual curiosity note grounded only in the supplied seeds.",
-    },
-    storyTitle: {
-      type: "string",
-      description: "An elegant editorial title for the deeper curator note.",
-    },
-    whyItMatters: {
-      type: "string",
-      description:
-        "A concise curator explanation of why the observed detail matters in the composition.",
-    },
-    noticeNext: {
-      type: "string",
-      description:
-        "A short visual direction that sends the visitor's eyes to a related detail in the painting.",
-    },
-    ctaLabel: {
-      type: "string",
-      enum: ["Return to the painting", "Continue looking", "Keep exploring"],
-      description:
-        "A short invitation to return to or continue exploring the painting.",
-    },
-  },
-  required: [
-    "observationLine",
-    "annotationText",
-    "storyTitle",
-    "whyItMatters",
-    "noticeNext",
-    "ctaLabel",
-  ],
-  additionalProperties: false,
-} as const;
+if (hotspotMappingIssues.length > 0) {
+  throw new Error(
+    `[Look Closer] Invalid hotspot mapping: ${hotspotMappingIssues.join(", ")}`,
+  );
+}
 
 type OpenAIResponse = {
+  id?: string;
+  model?: string;
   output_text?: string;
   output?: Array<{
     type?: string;
     content?: Array<{ type?: string; text?: string }>;
   }>;
 };
+
+function logCurator(
+  level: "info" | "warn" | "error",
+  event: string,
+  details: Record<string, unknown>,
+) {
+  const message = `[Look Closer][curator] ${event} ${JSON.stringify(details)}`;
+  console[level](message);
+}
 
 function extractOutputText(response: OpenAIResponse) {
   if (response.output_text) return response.output_text;
@@ -70,20 +56,6 @@ function extractOutputText(response: OpenAIResponse) {
   }
 
   return null;
-}
-
-function isCuratorCopyContent(value: unknown): value is CuratorCopyContent {
-  if (!value || typeof value !== "object") return false;
-  const copy = value as Partial<CuratorCopyContent>;
-
-  return (
-    typeof copy.observationLine === "string" &&
-    typeof copy.annotationText === "string" &&
-    typeof copy.storyTitle === "string" &&
-    typeof copy.whyItMatters === "string" &&
-    typeof copy.noticeNext === "string" &&
-    typeof copy.ctaLabel === "string"
-  );
 }
 
 function sanitizeInput(value: unknown): CuratorGenerationInput | null {
@@ -135,50 +107,89 @@ function sanitizeInput(value: unknown): CuratorGenerationInput | null {
 }
 
 export async function POST(request: Request) {
-  const input = sanitizeInput(await request.json().catch(() => null));
+  const requestId = crypto.randomUUID().slice(0, 8);
+  const rawInput: unknown = await request.json().catch(() => null);
+  const receivedHotspotId =
+    rawInput &&
+    typeof rawInput === "object" &&
+    "hotspotId" in rawInput &&
+    typeof rawInput.hotspotId === "string"
+      ? rawInput.hotspotId
+      : "invalid";
+  const input = sanitizeInput(rawInput);
+
+  logCurator("info", "request received", {
+    requestId,
+    hotspotId: receivedHotspotId,
+    model: CURATOR_MODEL,
+    apiKeyConfigured: Boolean(process.env.OPENAI_API_KEY),
+  });
 
   if (!input) {
+    logCurator("warn", "request rejected", {
+      requestId,
+      hotspotId: receivedHotspotId,
+      reason: "invalid-request",
+    });
     return NextResponse.json({ error: "Invalid curator request" }, { status: 400 });
   }
 
-  const hotspot = lastSupperArtwork.hotspots.find(
-    (candidate) => candidate.id === input.hotspotId,
-  );
+  const hotspot = findHotspotById(lastSupperArtwork.hotspots, input.hotspotId);
 
   if (!hotspot) {
+    logCurator("warn", "request rejected", {
+      requestId,
+      hotspotId: input.hotspotId,
+      reason: "unknown-hotspot",
+    });
     return NextResponse.json({ error: "Unknown hotspot" }, { status: 404 });
   }
 
+  logCurator("info", "hotspot resolved", {
+    requestId,
+    receivedHotspotId: input.hotspotId,
+    resolvedHotspotId: hotspot.id,
+    storyIndex: hotspot.storyIndex,
+    hotspotLabel: hotspot.label,
+  });
+
   if (input.hotspotLabel !== hotspot.label) {
+    logCurator("warn", "request rejected", {
+      requestId,
+      hotspotId: input.hotspotId,
+      reason: "label-mismatch",
+    });
     return NextResponse.json(
       { error: "Hotspot label does not match artwork data" },
       { status: 400 },
     );
   }
 
-  const fallback = () => NextResponse.json(createFallbackCuratorCopy(input, hotspot));
   const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) return fallback();
-
-  const hasVisitedBefore = input.hotspotVisitCount > 1;
-  const curatorContext = {
-    artwork: input.artwork,
-    attention: {
+  const fallback = (reason: string) => {
+    logCurator("warn", "final response", {
+      requestId,
       hotspotId: hotspot.id,
-      hotspotLabel: hotspot.label,
-      hotspotVisitCount: input.hotspotVisitCount,
-      dwellTimeMs: input.dwellTimeMs,
-      isReturnVisit: hasVisitedBefore,
-      visitedHotspotIds: input.visitedHotspotIds,
-      priorCuriosityNotes: input.priorCuriosityNotes,
-      interactionStage: input.interactionStage,
-    },
-    verifiedSeeds: {
-      factualSeed: hotspot.factualSeed,
-      deeperStorySeeds: hotspot.storySeeds,
-    },
+      storyIndex: hotspot.storyIndex,
+      source: "fallback",
+      reason,
+    });
+    return NextResponse.json(createFallbackCuratorCopy(input, hotspot));
   };
+
+  if (!apiKey) return fallback("missing-api-key");
+
+  const attentionPattern = getAttentionPattern(input);
+
+  logCurator("info", "prompt context built", {
+    requestId,
+    hotspotId: hotspot.id,
+    storyIndex: hotspot.storyIndex,
+    visitCount: input.hotspotVisitCount,
+    hoverDurationSeconds: input.dwellTimeMs / 1000,
+    attentionPattern,
+    interactionStage: input.interactionStage,
+  });
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -193,50 +204,55 @@ export async function POST(request: Request) {
         store: false,
         reasoning: { effort: "none" },
         max_output_tokens: 480,
-        instructions: [
-          "You are the quiet curator inside an immersive museum exhibition.",
-          "Write in refined, restrained English with an observant human voice—not a chatbot voice.",
-          "The first line must notice the visitor's attention behavior, not describe the artwork.",
-          "For a first visit, acknowledge that their attention settled here. For a second visit, acknowledge that they came back. For three or more visits, gently notice the repeated pattern.",
-          "Use prior notes and visited hotspot IDs only when they genuinely support a pattern; never invent a psychological profile.",
-          "Keep the annotation suspenseful and 8–18 words. Do not explain everything there.",
-          "Treat observationLine as the annotation intro and annotationText as its short subtitle.",
-          "Ground every art claim only in the verified factual and story seeds. Never invent details.",
-          "Write whyItMatters as one compact 22–38 word curator explanation.",
-          "Write noticeNext as one visual direction of 14–26 words that sends the visitor's eyes back into the painting.",
-          "Avoid AI-product language, rhetorical filler, and exclamation marks.",
-          "Choose only one supplied exhibition CTA label.",
-        ].join(" "),
-        input: JSON.stringify(curatorContext),
+        instructions: buildCuratorSystemPrompt(),
+        input: buildCuratorUserPrompt(input, hotspot),
         text: {
           verbosity: "low",
           format: {
             type: "json_schema",
             name: "look_closer_curator_copy",
             strict: true,
-            schema: curatorSchema,
+            schema: CURATOR_OUTPUT_SCHEMA,
           },
         },
       }),
     });
 
     if (!response.ok) {
-      console.error("OpenAI curator request failed", response.status);
-      return fallback();
+      logCurator("error", "OpenAI request failed", {
+        requestId,
+        hotspotId: hotspot.id,
+        storyIndex: hotspot.storyIndex,
+        status: response.status,
+      });
+      return fallback(`openai-http-${response.status}`);
     }
 
     const responseData = (await response.json()) as OpenAIResponse;
     const outputText = extractOutputText(responseData);
     const parsed: unknown = outputText ? JSON.parse(outputText) : null;
 
-    if (!isCuratorCopyContent(parsed)) return fallback();
+    if (!isCuratorCopyContent(parsed)) {
+      return fallback("invalid-structured-output");
+    }
+
+    logCurator("info", "final response", {
+      requestId,
+      hotspotId: hotspot.id,
+      storyIndex: hotspot.storyIndex,
+      source: "openai",
+      openaiResponseId: responseData.id ?? "unavailable",
+      model: responseData.model ?? CURATOR_MODEL,
+    });
 
     return NextResponse.json({ ...parsed, source: "openai" });
   } catch (error) {
-    console.error(
-      "OpenAI curator generation unavailable",
-      error instanceof Error ? error.message : "unknown error",
-    );
-    return fallback();
+    logCurator("error", "OpenAI generation unavailable", {
+      requestId,
+      hotspotId: hotspot.id,
+      storyIndex: hotspot.storyIndex,
+      message: error instanceof Error ? error.message : "unknown error",
+    });
+    return fallback("openai-exception");
   }
 }
